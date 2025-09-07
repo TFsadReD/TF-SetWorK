@@ -1,9 +1,9 @@
 from core.interpreter import Interpreter
 
-version = ">>> TF SetWorK v.0.3.7 <<<"
+version = ">>> TF SetWorK v.0.3.8 <<<"
 
 if __name__ == "__main__":
-    with open("test.tf", "r", encoding="utf-8") as f:
+    with open("app.tf", "r", encoding="utf-8") as f:
         code = f.read()
 
     print(version)
