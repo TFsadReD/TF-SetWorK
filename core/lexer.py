@@ -17,7 +17,6 @@ TOKEN_SPECIFICATION = [
 ]
 
 def lexicon(code):
-    # Разбивает исходный код на токены
     reg_token = "|".join(
         f"(?P<{name}>{pattern})" for name, pattern in TOKEN_SPECIFICATION
     )

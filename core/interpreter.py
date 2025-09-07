@@ -50,7 +50,7 @@ class Interpreter:
                     if tok.value in self.variables:
                         output.append(self.variables[tok.value])
                     else:
-                        raise NameError(f"Line {line_num}: Undefined variable '{tok.value}'\n> {line_text}")
+                        raise NameError(f"Line {line_num}: Undefined variable's name '{tok.value}'\n> {line_text}")
                 case "OPER":
                     while ops and ops[-1] != '(' and precedence.get(ops[-1],0) >= precedence.get(tok.value,0):
                         output.append(ops.pop())
