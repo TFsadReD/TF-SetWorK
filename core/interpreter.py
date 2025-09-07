@@ -4,36 +4,100 @@ class Interpreter:
     def __init__(self):
         self.variables = {}
 
-    def eval_expr(self, tokens, line_num, line_text):
-        """Вычисляет выражение, заменяя переменные значениями."""
+
+    """
+    Обработка токенов
+    """
+
+
+    def eval_expr(self, tokens, line_num, line_text, postfix=False):
+
         if not tokens:
             return ""
 
-        expr_parts = []
+        def apply_op(a, op, b):
+            match op:
+                case '+':
+                    if isinstance(a, (int,float)) and isinstance(b,(int,float)):
+                        return a + b
+                    else:
+                        raise TypeError("Use $+ for string concatenation")
+                case ',+':
+                    return float(a) + float(b)
+                case '$+':
+                    return str(a) + str(b)
+                case '-':
+                    return a - b
+                case '*':
+                    return a * b
+                case '/':
+                    return a / b
+                case _:
+                    raise SyntaxError(f"Unknown operator {op}")
+
+        precedence = {'+': 1, '-': 1, '*': 2, '/': 2, ',+': 2, '$+': 3} # Приоритеты
+
+        output = []
+        ops = []
+
         for tok in tokens:
-            if tok.type == "ID":
-                if tok.value in self.variables:
-                    expr_parts.append(str(self.variables[tok.value]))
-                else:
-                    raise NameError(
-                        f"Line {line_num}: Undefined variable '{tok.value}'\n> {line_text}"
-                    )
-            elif tok.type == "STRING":
-                expr_parts.append(repr(tok.value))
+            match tok.type:
+                case "NUMBER":
+                    output.append(tok.value)
+                case "STRING":
+                    output.append(tok.value)
+                case "ID":
+                    if tok.value in self.variables:
+                        output.append(self.variables[tok.value])
+                    else:
+                        raise NameError(f"Line {line_num}: Undefined variable '{tok.value}'\n> {line_text}")
+                case "OPER":
+                    while ops and ops[-1] != '(' and precedence.get(ops[-1],0) >= precedence.get(tok.value,0):
+                        output.append(ops.pop())
+                    ops.append(tok.value)
+                case "LPAREN":
+                    ops.append('(')
+                case "RPAREN":
+                    while ops and ops[-1] != '(':
+                        output.append(ops.pop())
+                    if not ops or ops[-1] != '(':
+                        raise SyntaxError(f"Line {line_num}: Mismatched parentheses\n> {line_text}")
+                    ops.pop()
+                case _:
+                    raise SyntaxError(f"Line {line_num}: Invalid token {tok}\n> {line_text}")
+
+        while ops:
+            if ops[-1] in ('(', ')'):
+                raise SyntaxError(f"Line {line_num}: Mismatched parentheses\n> {line_text}")
+            output.append(ops.pop())
+
+        if postfix:
+            print("Postfix stack:", output)
+        stack = []
+        for item in output:
+            if isinstance(item, (int, float)) or (isinstance(item, str) and item not in (',+','$+')):
+                stack.append(item)
             else:
-                expr_parts.append(str(tok.value))
+                try:
+                    b = stack.pop()
+                    a = stack.pop()
+                    stack.append(apply_op(a, item, b))
+                except Exception:
+                    raise SyntaxError(f"Line {line_num}: Invalid expression\n> {line_text}")
 
-        expr = "".join(expr_parts)
-        try:
-            return eval(expr)
-        except Exception as e:
-            raise SyntaxError(
-                f"Line {line_num}: Invalid expression '{expr}'\n> {line_text}\n{e}"
-            )
+        if len(stack) != 1:
+            raise SyntaxError(f"Line {line_num}: Invalid stack expression\n> {line_text}")
 
-    def run(self, code):
+        return stack[0]
+
+
+    """
+    Запуск интерпритатора
+    """
+
+
+    def run(self, code, postfix=False):
         lines = code.strip().splitlines()
-
         if not lines or not lines[0].startswith("!TF:"):
             raise SyntaxError("File must start with !TF:")
 
@@ -46,21 +110,16 @@ class Interpreter:
                 continue
 
             try:
-                # echo <expr> или echo
-                if tokens[0].type == "ECHO":
-                    result = self.eval_expr(tokens[1:], line_num, line)
-                    print(result)
-
-                # <id> @= <expr>
-                elif tokens[0].type == "ID" and len(tokens) >= 3 and tokens[1].value == "@=":
-                    var_name = tokens[0].value
-                    expr_tokens = tokens[2:]
-                    self.variables[var_name] = self.eval_expr(expr_tokens, line_num, line)
-
-                else:
-                    raise SyntaxError(
-                        f"Line {line_num}: Unknown statement\n> {line}"
-                    )
-
+                match tokens[0].type:
+                    case "ECHO":
+                        result = self.eval_expr(tokens[1:], line_num, line, postfix)
+                        print(result)
+                    case "ID" if len(tokens) >= 3 and tokens[1].value == "@=":
+                        var_name = tokens[0].value
+                        expr_tokens = tokens[2:]
+                        self.variables[var_name] = self.eval_expr(expr_tokens, line_num, line)
+                    case _:
+                        raise SyntaxError(f"Line {line_num}: Unknown statement\n> {line}")
             except Exception as e:
-                raise e
+                print(f"~ ~ ~ ~ ~ ~ ~ ~\nError in {e}")
+                break
