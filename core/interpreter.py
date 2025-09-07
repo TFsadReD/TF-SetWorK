@@ -6,8 +6,8 @@ class Interpreter:
 
     def eval_expr(self, tokens, line_num, line_text):
         """Вычисляет выражение, заменяя переменные значениями."""
-        if not tokens:  # если список пуст → echo без аргументов
-            return ""   # вернём пустую строку
+        if not tokens:
+            return ""
 
         expr_parts = []
         for tok in tokens:
@@ -18,6 +18,8 @@ class Interpreter:
                     raise NameError(
                         f"Line {line_num}: Undefined variable '{tok.value}'\n> {line_text}"
                     )
+            elif tok.type == "STRING":
+                expr_parts.append(repr(tok.value))
             else:
                 expr_parts.append(str(tok.value))
 
@@ -32,12 +34,10 @@ class Interpreter:
     def run(self, code):
         lines = code.strip().splitlines()
 
-        # Проверяем заголовок
         if not lines or not lines[0].startswith("!TF:"):
             raise SyntaxError("File must start with !TF:")
 
-        # Выполняем построчно
-        for line_num, line in enumerate(lines[1:], start=2):  # начиная со 2 строки
+        for line_num, line in enumerate(lines[1:], start=2):
             if not line.strip():
                 continue
 

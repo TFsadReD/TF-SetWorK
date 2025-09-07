@@ -4,15 +4,16 @@ import re
 Token = namedtuple('Token', ['type', 'value'])
 
 TOKEN_SPECIFICATION = [
-    ('HEADER', r'!TF:'),                # начало файла
-    ('NUMBER', r'\d+(\.\d*)?'),         # числа
-    ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),  # переменные
-    ('OPER', r'@=|==|!=|<=|>=|[+\-*/=<>]'),  # операции
-    ('NEWLINE', r'\n'),                 # новая строка
-    ('LPAREN', r'\('),                  # (
-    ('RPAREN', r'\)'),                  # )
-    ('SKIP', r'[ \t]+'),                # пробелы
-    ('MISSMATCH', r'.'),                # всё остальное
+    ('HEADER', r'!TF:'),                         # начало файла
+    ('NUMBER', r'\d+(\.\d*)?'),                  # числа
+    ('STRING', r'"[^"\n]*"'),                    # строковые литералы в кавычках
+    ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),           # переменные
+    ('OPER', r'@=|==|!=|<=|>=|[+\-*/=<>]'),      # операции
+    ('NEWLINE', r'\n'),                          # новая строка
+    ('LPAREN', r'\('),                           # (
+    ('RPAREN', r'\)'),                           # )
+    ('SKIP', r'[ \t]+'),                         # пробелы
+    ('MISSMATCH', r'.'),                         # всё остальное
 ]
 
 def lexicon(code):
@@ -29,6 +30,9 @@ def lexicon(code):
             case 'NUMBER':
                 value = float(value) if '.' in value else int(value)
                 yield Token(kind, value)
+
+            case 'STRING':
+                yield Token("STRING", value.strip('"'))
 
             case 'ID':
                 if value == "echo":
