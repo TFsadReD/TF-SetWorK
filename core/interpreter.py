@@ -108,7 +108,7 @@ class Interpreter:
             tokens = list(lexicon(line))
             if not tokens:
                 continue
-
+# s
             try:
                 match tokens[0].type:
                     case "ECHO":
