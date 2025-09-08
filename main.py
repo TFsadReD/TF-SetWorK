@@ -1,6 +1,6 @@
 from core.interpreter import Interpreter
 
-version = ">>> TF SetWorK v.0.5.2 <<<"
+version = ">>> TF SetWorK v.0.5.3 <<<"
 
 if __name__ == "__main__":
     with open("app.tf", "r", encoding="utf-8") as f:
