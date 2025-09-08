@@ -4,24 +4,18 @@ class Interpreter:
     def __init__(self):
         self.variables = {}
 
-
     """
     Нормализация чисел
     """
-
-
     def _normalize_float(self, value):
         if isinstance(value, float):
             value = round(value, 10)
             value = float(f"{value:.10g}")
         return value
 
-
     """
     Обработка токенов
     """
-
-
     def eval_expr(self, tokens, line_num, line_text, postfix=False):
 
         if not tokens:
@@ -32,56 +26,66 @@ class Interpreter:
                 case '+':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return self._normalize_float(a + b)
-                    else:
-                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                    raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case ',+':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return self._normalize_float(float(a) + float(b))
-                    else:
-                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                    raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case ',-':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return self._normalize_float(float(a) - float(b))
-                    else:
-                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                    raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '$+':
                     return str(a) + str(b)
                 case '-':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return self._normalize_float(a - b)
-                    else:
-                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                    raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '*':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return self._normalize_float(a * b)
-                    else:
-                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                    raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '/':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return self._normalize_float(a / b)
-                    else:
-                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                    raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                # логические и сравнения
+                case '==':
+                    return a == b
+                case '!=':
+                    return a != b
+                case '<':
+                    return a < b
+                case '<=':
+                    return a <= b
+                case '>':
+                    return a > b
+                case '>=':
+                    return a >= b
                 case _:
                     raise SyntaxError(f"Unknown operator {op}")
 
-        precedence = {'+': 1, '-': 1, ',+': 2, ',-': 2, '*': 3, '/': 3, '$+': 4}   # Приоритеты
+        precedence = {
+            '+': 1, '-': 1,
+            ',+': 2, ',-': 2,
+            '*': 3, '/': 3,
+            '==': 0, '!=': 0, '<': 0, '<=': 0, '>': 0, '>=': 0,
+            '$+': 4
+        }
 
-        output = []
-        ops = []
+        output, ops = [], []
 
         for tok in tokens:
             match tok.type:
-                case "NUMBER":
-                    output.append(tok.value)
-                case "STRING":
+                case "NUMBER" | "STRING" | "BOOL":
                     output.append(tok.value)
                 case "ID":
                     if tok.value in self.variables:
                         output.append(self.variables[tok.value])
                     else:
-                        raise NameError(f"NameError in Line {line_num}: Undefined variable's name '{tok.value}'\n> {line_text}")
+                        raise NameError(f"NameError in Line {line_num}: Undefined variable '{tok.value}'\n> {line_text}")
                 case "OPER":
-                    while ops and ops[-1] != '(' and precedence.get(ops[-1],0) >= precedence.get(tok.value,0):
+                    while ops and ops[-1] != '(' and precedence.get(ops[-1], 0) >= precedence.get(tok.value, 0):
                         output.append(ops.pop())
                     ops.append(tok.value)
                 case "LPAREN":
@@ -105,7 +109,7 @@ class Interpreter:
 
         stack = []
         for item in output:
-            if isinstance(item, (int, float)) or (isinstance(item, str) and item not in (',-',',+','$+')):
+            if isinstance(item, (int, float, bool)) or (isinstance(item, str) and item not in (',-',',+','$+','==','!=','<','<=','>','>=')):
                 stack.append(item)
             else:
                 try:
@@ -113,7 +117,7 @@ class Interpreter:
                     a = stack.pop()
                     stack.append(apply_op(a, item, b))
                 except Exception:
-                    raise SyntaxError(f"SyntaxError in Line {line_num}: Invalid expression\n> {line_text}")
+                    raise SyntaxError(f"SyntaxError in Line {line_num}: Invalid expression\n > {line_text}")
 
         if len(stack) != 1:
             raise SyntaxError(f"StackError in Line {line_num}: Invalid stack expression\n> {line_text}")
@@ -121,12 +125,9 @@ class Interpreter:
         result = stack[0]
         return self._normalize_float(result)
 
-
     """
     Запуск интерпритатора
     """
-
-
     def run(self, code, postfix=False):
         lines = code.strip().splitlines()
         if not lines or not lines[0].startswith("!TF:"):

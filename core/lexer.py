@@ -39,6 +39,9 @@ def lexicon(code):
             case 'STRING':
                 yield Token("STRING", value.strip('"'))
 
+            case 'BOOL':
+                yield Token("BOOL", True if value == "True" else False)
+
             case 'ID':
                 if value in TOKEN_COMMANDS:
                     yield Token(TOKEN_COMMANDS[value], value)
