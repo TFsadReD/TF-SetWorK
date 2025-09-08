@@ -5,7 +5,7 @@ Token = namedtuple('Token', ['type', 'value'])
 
 TOKEN_SPECIFICATION = [
     ('HEADER', r'!TF:'),                                     # начало файла
-    ('NUMBER', r'\d+(\.\d*)?'),                              # числа
+    ('NUMBER', r'-?\d+(\.\d*)?'),                            # числа
     ('STRING', r'"[^"\n]*"'),                                # строковые литералы в кавычках
     ('BOOL', r'True|False'),                                 # булево значения
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),                       # переменные
