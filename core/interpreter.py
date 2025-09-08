@@ -21,21 +21,38 @@ class Interpreter:
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
                         return a + b
                     else:
-                        raise TypeError("Use $+ for string concatenation")
+                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case ',+':
-                    return float(a) + float(b)
+                    if isinstance(a, (int,float)) and isinstance(b,(int,float)):
+                        return float(f"{round(float(a) + float(b), 10)}")
+                    else:
+                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
+                case ',-':
+                    if isinstance(a, (int,float)) and isinstance(b,(int,float)):
+                        return float(f"{round(float(a) - float(b), 10)}")
+                    else:
+                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '$+':
                     return str(a) + str(b)
                 case '-':
-                    return a - b
+                    if isinstance(a, (int,float)) and isinstance(b,(int,float)):
+                        return a - b
+                    else:
+                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '*':
-                    return a * b
+                    if isinstance(a, (int,float)) and isinstance(b,(int,float)):
+                        return a * b
+                    else:
+                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '/':
-                    return a / b
+                    if isinstance(a, (int,float)) and isinstance(b,(int,float)):
+                        return a / b
+                    else:
+                        raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case _:
                     raise SyntaxError(f"Unknown operator {op}")
 
-        precedence = {'+': 1, '-': 1, '*': 2, '/': 2, ',+': 2, '$+': 3} # Приоритеты
+        precedence = {'+': 1, '-': 1, ',+': 2, ',-': 2, '*': 3, '/': 3, '$+': 4}   # Приоритеты
 
         output = []
         ops = []
@@ -50,7 +67,7 @@ class Interpreter:
                     if tok.value in self.variables:
                         output.append(self.variables[tok.value])
                     else:
-                        raise NameError(f"Line {line_num}: Undefined variable's name '{tok.value}'\n> {line_text}")
+                        raise NameError(f"NameError in Line {line_num}: Undefined variable's name '{tok.value}'\n> {line_text}")
                 case "OPER":
                     while ops and ops[-1] != '(' and precedence.get(ops[-1],0) >= precedence.get(tok.value,0):
                         output.append(ops.pop())
@@ -61,21 +78,21 @@ class Interpreter:
                     while ops and ops[-1] != '(':
                         output.append(ops.pop())
                     if not ops or ops[-1] != '(':
-                        raise SyntaxError(f"Line {line_num}: Mismatched parentheses\n> {line_text}")
+                        raise SyntaxError(f"SyntaxError in Line {line_num}: Mismatched parentheses\n> {line_text}")
                     ops.pop()
                 case _:
-                    raise SyntaxError(f"Line {line_num}: Invalid token {tok}\n> {line_text}")
+                    raise SyntaxError(f"SyntaxError in Line {line_num}: Invalid token {tok}\n> {line_text}")
 
         while ops:
             if ops[-1] in ('(', ')'):
-                raise SyntaxError(f"Line {line_num}: Mismatched parentheses\n> {line_text}")
+                raise SyntaxError(f"SyntaxError in Line {line_num}: Mismatched parentheses\n> {line_text}")
             output.append(ops.pop())
 
         if postfix:
             print("Postfix stack:", output)
         stack = []
         for item in output:
-            if isinstance(item, (int, float)) or (isinstance(item, str) and item not in (',+','$+')):
+            if isinstance(item, (int, float)) or (isinstance(item, str) and item not in (',-',',+','$+')):
                 stack.append(item)
             else:
                 try:
@@ -83,12 +100,16 @@ class Interpreter:
                     a = stack.pop()
                     stack.append(apply_op(a, item, b))
                 except Exception:
-                    raise SyntaxError(f"Line {line_num}: Invalid expression\n> {line_text}")
+                    raise SyntaxError(f"SyntaxError in Line {line_num}: Invalid expression\n> {line_text}")
 
         if len(stack) != 1:
-            raise SyntaxError(f"Line {line_num}: Invalid stack expression\n> {line_text}")
+            raise SyntaxError(f"StackError in Line {line_num}: Invalid stack expression\n> {line_text}")
 
-        return stack[0]
+        result = stack[0]
+        if isinstance(result, float):
+            result = round(result, 10)
+            result = float(f"{result:.10g}")
+        return result
 
 
     """
@@ -108,7 +129,7 @@ class Interpreter:
             tokens = list(lexicon(line))
             if not tokens:
                 continue
-# s
+
             try:
                 match tokens[0].type:
                     case "ECHO":
@@ -121,5 +142,5 @@ class Interpreter:
                     case _:
                         raise SyntaxError(f"Line {line_num}: Unknown statement\n> {line}")
             except Exception as e:
-                print(f"~ ~ ~ ~ ~ ~ ~ ~\nError in {e}")
+                print(f"~ ~ ~ ~ ~ ~ ~ ~\n{e}")
                 break

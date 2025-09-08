@@ -1,6 +1,6 @@
 from core.interpreter import Interpreter
 
-version = ">>> TF SetWorK v.0.3.8 <<<"
+version = ">>> TF SetWorK v.0.4 <<<"
 
 if __name__ == "__main__":
     with open("app.tf", "r", encoding="utf-8") as f:
@@ -12,4 +12,4 @@ if __name__ == "__main__":
     try:
         interp.run(code)
     except Exception as e:
-        print(f"~ ~ ~ ~ ~ ~ ~ ~\nError in {e}")
+        print(f"~ ~ ~ ~ ~ ~ ~ ~\n{e}")
