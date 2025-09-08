@@ -7,6 +7,7 @@ TOKEN_SPECIFICATION = [
     ('HEADER', r'!TF:'),                                     # начало файла
     ('NUMBER', r'\d+(\.\d*)?'),                              # числа
     ('STRING', r'"[^"\n]*"'),                                # строковые литералы в кавычках
+    ('BOOL', r'True|False'),                                 # булево значения
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),                       # переменные
     ('OPER', r'[@]=|==|!=|<=|>=|,\+|\$\+|,\-|[+\-*/=<>]'),   # операции
     ('NEWLINE', r'\n'),                                      # новая строка
@@ -15,6 +16,11 @@ TOKEN_SPECIFICATION = [
     ('SKIP', r'[ \t]+'),                                     # пробелы
     ('MISSMATCH', r'.'),                                     # всё остальное
 ]
+
+TOKEN_COMMANDS = {
+    "echo": "ECHO",
+}
+
 
 def lexicon(code):
     reg_token = "|".join(
@@ -34,8 +40,8 @@ def lexicon(code):
                 yield Token("STRING", value.strip('"'))
 
             case 'ID':
-                if value == "echo":
-                    yield Token("ECHO", value)
+                if value in TOKEN_COMMANDS:
+                    yield Token(TOKEN_COMMANDS[value], value)
                 else:
                     yield Token("ID", value)
 

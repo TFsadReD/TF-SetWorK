@@ -6,6 +6,18 @@ class Interpreter:
 
 
     """
+    Нормализация чисел
+    """
+
+
+    def _normalize_float(self, value):
+        if isinstance(value, float):
+            value = round(value, 10)
+            value = float(f"{value:.10g}")
+        return value
+
+
+    """
     Обработка токенов
     """
 
@@ -19,34 +31,34 @@ class Interpreter:
             match op:
                 case '+':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
-                        return a + b
+                        return self._normalize_float(a + b)
                     else:
                         raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case ',+':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
-                        return float(f"{round(float(a) + float(b), 10)}")
+                        return self._normalize_float(float(a) + float(b))
                     else:
                         raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case ',-':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
-                        return float(f"{round(float(a) - float(b), 10)}")
+                        return self._normalize_float(float(a) - float(b))
                     else:
                         raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '$+':
                     return str(a) + str(b)
                 case '-':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
-                        return a - b
+                        return self._normalize_float(a - b)
                     else:
                         raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '*':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
-                        return a * b
+                        return self._normalize_float(a * b)
                     else:
                         raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case '/':
                     if isinstance(a, (int,float)) and isinstance(b,(int,float)):
-                        return a / b
+                        return self._normalize_float(a / b)
                     else:
                         raise TypeError(f"TypeError in Line {line_num}: Invalid operator's value")
                 case _:
@@ -90,6 +102,7 @@ class Interpreter:
 
         if postfix:
             print("Postfix stack:", output)
+
         stack = []
         for item in output:
             if isinstance(item, (int, float)) or (isinstance(item, str) and item not in (',-',',+','$+')):
@@ -106,10 +119,7 @@ class Interpreter:
             raise SyntaxError(f"StackError in Line {line_num}: Invalid stack expression\n> {line_text}")
 
         result = stack[0]
-        if isinstance(result, float):
-            result = round(result, 10)
-            result = float(f"{result:.10g}")
-        return result
+        return self._normalize_float(result)
 
 
     """
@@ -138,7 +148,9 @@ class Interpreter:
                     case "ID" if len(tokens) >= 3 and tokens[1].value == "@=":
                         var_name = tokens[0].value
                         expr_tokens = tokens[2:]
-                        self.variables[var_name] = self.eval_expr(expr_tokens, line_num, line)
+                        self.variables[var_name] = self._normalize_float(
+                            self.eval_expr(expr_tokens, line_num, line)
+                        )
                     case _:
                         raise SyntaxError(f"Line {line_num}: Unknown statement\n> {line}")
             except Exception as e:
