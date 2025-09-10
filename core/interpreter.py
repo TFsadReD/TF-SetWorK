@@ -153,12 +153,18 @@ class Interpreter:
         if not lines or not lines[0].startswith("!TF:"):
             raise SyntaxError("CriticalError: There is no guide determinant for the entire code")
 
-        for line_num, line in enumerate(lines[1:], start=2):
+        i = 1
+        while i < len(lines):
+            line_num = i + 1
+            line = lines[i]
+
             if not line.strip():
+                i += 1
                 continue
 
             tokens = list(lexicon(line))
             if not tokens:
+                i += 1
                 continue
 
             try:
@@ -166,6 +172,42 @@ class Interpreter:
                     case "ECHO":
                         result = self.eval_expr(tokens[1:], line_num, line, postfix)
                         print(result)
+
+                    case "IF":
+                        if tokens[1].type != "LPAREN":
+                            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing '(' after if")
+
+                        depth = 0
+                        close_index = None
+                        for idx, t in enumerate(tokens[1:], start=1):
+                            if t.type == "LPAREN":
+                                depth += 1
+                            elif t.type == "RPAREN":
+                                depth -= 1
+                                if depth == 0:
+                                    close_index = idx
+                                    break
+
+                        if close_index is None:
+                            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing ')' in if condition")
+
+                        cond_tokens = tokens[2:close_index]
+                        condition = self.eval_expr(cond_tokens, line_num, line)
+
+                        if close_index + 1 >= len(tokens) or tokens[close_index + 1].type != "LBRACE":
+                            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing '{{' after if condition")
+
+                        block_lines = []
+                        i += 1
+                        while i < len(lines) and "}" not in lines[i]:
+                            block_lines.append(lines[i])
+                            i += 1
+                        if i >= len(lines):
+                            raise SyntaxError(f"SyntaxError: Missing '}}' for if starting at line {line_num}")
+
+                        if condition:
+                            self.run("!TF:\n" + "\n".join(block_lines), postfix=postfix)
+
                     case "ID" if len(tokens) >= 3 and tokens[1].value == "@=":
                         var_name = tokens[0].value
                         expr_tokens = tokens[2:]
@@ -173,8 +215,11 @@ class Interpreter:
                         if isinstance(value, (int, float)):
                             value = self._normalize_float(value)
                         self.variables[var_name] = value
+
                     case _:
                         raise SyntaxError(f"Line {line_num}: Unknown statement\n > {line}")
+
             except Exception as e:
                 print(f"~ ~ ~ ~ ~ ~ ~ ~\n{e}")
                 break
+            i += 1

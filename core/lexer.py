@@ -10,6 +10,9 @@ TOKEN_SPECIFICATION = [
     ('BOOL', r'True|False'),                                 # булево значения
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),                       # переменные
     ('OPER', r'[@]=|==|!=|<=|>=|,\+|\$\+|,\-|[+\-*/=<>]'),   # операции
+    ('LOGIC', r'and|or|not'),                                # логические опепраторы
+    ('LBRACE', r'\{'),                                       # {
+    ('RBRACE', r'\}'),                                       # }
     ('NEWLINE', r'\n'),                                      # новая строка
     ('LPAREN', r'\('),                                       # (
     ('RPAREN', r'\)'),                                       # )
@@ -19,6 +22,7 @@ TOKEN_SPECIFICATION = [
 
 TOKEN_COMMANDS = {
     "echo": "ECHO",
+    "if": "IF",
 }
 
 
@@ -48,6 +52,9 @@ def lexicon(code):
                 else:
                     yield Token("ID", value)
 
+            case 'LOGIC':
+                yield Token("LOGIC", value)
+
             case 'HEADER':
                 yield Token("HEADER", value)
 
@@ -61,6 +68,9 @@ def lexicon(code):
                 continue
 
             case 'LPAREN' | 'RPAREN':
+                yield Token(kind, value)
+
+            case 'LBRACE' | 'RBRACE':
                 yield Token(kind, value)
 
             case 'MISSMATCH':
