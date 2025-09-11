@@ -143,6 +143,47 @@ class Interpreter:
         return self._normalize_float(result)
 
 
+
+    """
+    Вычисление условия внутри if/elif
+    """
+
+
+    def _eval_condition(self, tokens, line_num, line_text):
+        if tokens[1].type != "LPAREN":
+            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing '(' after {tokens[0].value}")
+
+        try:
+            close_index = next(idx for idx, t in enumerate(tokens) if t.type == "RPAREN")
+        except StopIteration:
+            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing ')' in {tokens[0].value} condition")
+
+        cond_tokens = tokens[2:close_index]
+        return bool(self.eval_expr(cond_tokens, line_num, line_text))
+
+
+    """
+    Собирает блок кода { ... } начиная с текущей строки i
+    """
+
+
+    def _collect_block(self, lines, i):
+        line = lines[i]
+        if "{" not in line:
+            raise SyntaxError(f"SyntaxError in Line {i+1}: Missing '{{' after condition")
+
+        block_lines = []
+        i += 1
+        while i < len(lines) and "}" not in lines[i]:
+            block_lines.append(lines[i])
+            i += 1
+
+        if i >= len(lines):
+            raise SyntaxError(f"SyntaxError: Missing '}}' for block starting at line {i+1}")
+
+        return block_lines, i
+
+
     """
     Запуск интерпретатора
     """
@@ -151,7 +192,7 @@ class Interpreter:
     def run(self, code, postfix=False):
         lines = code.strip().splitlines()
         if not lines or not lines[0].startswith("!TF:"):
-            raise SyntaxError("CriticalError: There is no guide determinant for the entire code")
+            raise SyntaxError("File must start with !TF:")
 
         i = 1
         while i < len(lines):
@@ -174,39 +215,38 @@ class Interpreter:
                         print(result)
 
                     case "IF":
-                        if tokens[1].type != "LPAREN":
-                            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing '(' after if")
-
-                        depth = 0
-                        close_index = None
-                        for idx, t in enumerate(tokens[1:], start=1):
-                            if t.type == "LPAREN":
-                                depth += 1
-                            elif t.type == "RPAREN":
-                                depth -= 1
-                                if depth == 0:
-                                    close_index = idx
-                                    break
-
-                        if close_index is None:
-                            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing ')' in if condition")
-
-                        cond_tokens = tokens[2:close_index]
-                        condition = self.eval_expr(cond_tokens, line_num, line)
-
-                        if close_index + 1 >= len(tokens) or tokens[close_index + 1].type != "LBRACE":
-                            raise SyntaxError(f"SyntaxError in Line {line_num}: Missing '{{' after if condition")
-
-                        block_lines = []
-                        i += 1
-                        while i < len(lines) and "}" not in lines[i]:
-                            block_lines.append(lines[i])
-                            i += 1
-                        if i >= len(lines):
-                            raise SyntaxError(f"SyntaxError: Missing '}}' for if starting at line {line_num}")
+                        executed = False
+                        condition = self._eval_condition(tokens, line_num, line)
+                        block_lines, i = self._collect_block(lines, i)
 
                         if condition:
                             self.run("!TF:\n" + "\n".join(block_lines), postfix=postfix)
+                            executed = True
+
+                        while i + 1 < len(lines):
+                            next_line = lines[i + 1].strip()
+                            if not next_line:
+                                i += 1
+                                continue
+
+                            next_tokens = list(lexicon(next_line))
+                            if not next_tokens or next_tokens[0].type not in ("ELIF", "ELSE"):
+                                break
+
+                            i += 1
+                            if next_tokens[0].type == "ELIF":
+                                condition = self._eval_condition(next_tokens, i + 1, lines[i])
+                                block_lines, i = self._collect_block(lines, i)
+                                if not executed and condition:
+                                    self.run("!TF:\n" + "\n".join(block_lines), postfix=postfix)
+                                    executed = True
+
+                            elif next_tokens[0].type == "ELSE":
+                                block_lines, i = self._collect_block(lines, i)
+                                if not executed:
+                                    self.run("!TF:\n" + "\n".join(block_lines), postfix=postfix)
+                                    executed = True
+                                break
 
                     case "ID" if len(tokens) >= 3 and tokens[1].value == "@=":
                         var_name = tokens[0].value
@@ -222,4 +262,5 @@ class Interpreter:
             except Exception as e:
                 print(f"~ ~ ~ ~ ~ ~ ~ ~\n{e}")
                 break
+
             i += 1

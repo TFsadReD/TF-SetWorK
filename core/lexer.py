@@ -23,6 +23,8 @@ TOKEN_SPECIFICATION = [
 TOKEN_COMMANDS = {
     "echo": "ECHO",
     "if": "IF",
+    "elif": "ELIF",
+    "else": "ELSE",
 }
 
 
